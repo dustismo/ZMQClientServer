@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.trendrr.zmq;
+package com.trendrr.zmq.server;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
