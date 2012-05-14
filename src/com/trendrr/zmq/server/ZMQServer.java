@@ -1,0 +1,134 @@
+/**
+ * 
+ */
+package com.trendrr.zmq.server;
+
+import java.io.UnsupportedEncodingException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.zeromq.ZMQ;
+
+import com.trendrr.zmq.ZMQOutgoing;
+
+
+/**
+ * @author Dustin Norlander
+ * @created May 9, 2012
+ * 
+ */
+public class ZMQServer implements Runnable{
+
+	protected static Log log = LogFactory.getLog(ZMQServer.class);
+	private int port = 8653;
+	private ZMQMessageHandler handler;
+	
+	public static void main(String ...strings) {
+		
+		ZMQServer server = new ZMQServer();
+		ZMQMessageHandler handler = new ZMQMessageHandler() {
+			
+			@Override
+			public void incoming(ZMQChannel channel, byte[] message) {
+				try {
+					String received = new String(message, "utf8");
+					System.out.println("RECIEVED: " + received);
+					//send back the message..
+					channel.send(("RECEIVED: " + received).getBytes("utf8"));					
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			@Override
+			public void error(Exception x) {
+				x.printStackTrace();
+			}
+		};
+		
+		server.listen(8988, handler, false);
+		
+	}
+	
+	/**
+	 * starts the listener.
+	 * @param threaded should this be started in a new thread? if true, will return immediately, if false will never return.
+	 * 
+	 */
+	public void listen(int port, ZMQMessageHandler handler, boolean threaded) {
+		this.port = port;
+		this.handler = handler;
+		if (threaded) {
+			Thread t = new Thread(this);
+			t.start();
+		} else {
+			this.run();
+		}
+	}
+	
+	
+	
+	public void run() {
+		ZMQ.Context context = ZMQ.context(1);
+		ZMQ.Socket frontend = context.socket(ZMQ.ROUTER);
+		frontend.bind ("tcp://*:" + port);
+		
+		ZMQ.Socket backend = context.socket(ZMQ.DEALER);
+		backend.bind("inproc://serverbackend");
+		
+		//set up the outgoing
+		ZMQOutgoing outgoing = new ZMQOutgoing(context, "inproc://serverbackend");
+		outgoing.start();
+		
+		
+		
+		
+		ZMQ.Poller poller = context.poller(2);
+		int frontIndex = poller.register(frontend, ZMQ.Poller.POLLIN);
+		int backIndex = poller.register(backend, ZMQ.Poller.POLLIN);
+		
+		boolean more = false;
+		System.out.println("Server Listening on : " + port);
+		while(true) {
+			
+			poller.poll();
+			System.out.println("Server waking up");
+			if (poller.pollin(frontIndex)) {
+				//incoming messages.
+				do {
+					byte[] id = frontend.recv(0);
+					byte[] message = frontend.recv(0);
+					more = frontend.hasReceiveMore();
+					this.handleIncoming(new ZMQChannel(id, outgoing), message);
+				} while(more);
+			}
+			
+			if (poller.pollin(backIndex)) {
+				//theres a message needs to be written.
+				do {
+					System.out.println("SERVER SENDIGN");
+					byte[] id = frontend.recv(0);
+					byte[] message = frontend.recv(0);
+					try {
+						System.out.println("SERVER GOT HERE: " + new String(id, "utf8"));
+						System.out.println("SERVER GOT HERE: " + new String(message, "utf8"));
+					} catch (UnsupportedEncodingException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	                more = backend.hasReceiveMore();
+	                // Broker it
+	                frontend.send(id, ZMQ.SNDMORE);
+	                frontend.send(message,  more ? ZMQ.SNDMORE : 0);
+				} while(more);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	protected void handleIncoming(ZMQChannel channel, byte[] message) {
+		this.handler.incoming(channel, message);
+	}
+}
