@@ -6,7 +6,6 @@ package com.trendrr.zmq.server;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.trendrr.zmq.ZMQOutgoing;
 
 
 /**
@@ -20,9 +19,9 @@ public class ZMQChannel {
 	
 	byte[] id;
 	
-	ZMQOutgoing outgoing;
+	ZMQServerOutgoing outgoing;
 	
-	public ZMQChannel(byte[] id, ZMQOutgoing out) {
+	public ZMQChannel(byte[] id, ZMQServerOutgoing out) {
 		this.id = id;
 		this.outgoing = out;
 	}

@@ -7,11 +7,12 @@ import java.io.UnsupportedEncodingException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.trendrr.oss.StringHelper;
 import com.trendrr.oss.concurrent.Sleep;
 import com.trendrr.zmq.client.ZMQClient;
 import com.trendrr.zmq.client.ZMQClientMessageHandler;
 import com.trendrr.zmq.server.ZMQChannel;
-import com.trendrr.zmq.server.ZMQMessageHandler;
+import com.trendrr.zmq.server.ZMQServerMessageHandler;
 import com.trendrr.zmq.server.ZMQServer;
 
 
@@ -26,11 +27,15 @@ public class Main {
 	
 	public static void main(String ...strings) throws UnsupportedEncodingException {
 //		startServer();
-		ZMQClient client = startClient();
 		
-		client.send("this is a message".getBytes("utf8"));
-		Sleep.seconds(1);
-		client.send("this is a message 2".getBytes("utf8"));
+		String rand = StringHelper.randomString(4);
+		ZMQClient client = startClient();
+		for (int i=0; i < 20000; i++) {
+			client.send(("this is a message" + rand + " " + i).getBytes("utf8"));
+//			Sleep.seconds(1);
+//			client.send(("this is a message ALSO" + rand + " " + i).getBytes("utf8"));
+		}
+		
 		Sleep.seconds(20);
 		System.exit(1);
 	}
@@ -64,7 +69,7 @@ public class Main {
 	public static void startServer() {
 		
 		ZMQServer server = new ZMQServer();
-		ZMQMessageHandler handler = new ZMQMessageHandler() {
+		ZMQServerMessageHandler handler = new ZMQServerMessageHandler() {
 			
 			@Override
 			public void incoming(ZMQChannel channel, byte[] message) {

@@ -9,7 +9,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.zeromq.ZMQ;
 
-import com.trendrr.zmq.ZMQOutgoing;
 
 
 /**
@@ -21,17 +20,18 @@ public class ZMQServer implements Runnable{
 
 	protected static Log log = LogFactory.getLog(ZMQServer.class);
 	private int port = 8653;
-	private ZMQMessageHandler handler;
+	private ZMQServerMessageHandler handler;
 	
 	public static void main(String ...strings) {
 		
 		ZMQServer server = new ZMQServer();
-		ZMQMessageHandler handler = new ZMQMessageHandler() {
+		ZMQServerMessageHandler handler = new ZMQServerMessageHandler() {
 			
 			@Override
 			public void incoming(ZMQChannel channel, byte[] message) {
 				try {
 					String received = new String(message, "utf8");
+					System.out.println("ID: " + new String(channel.id, "utf8"));
 					System.out.println("RECIEVED: " + received);
 					//send back the message..
 					channel.send(("RECEIVED: " + received).getBytes("utf8"));					
@@ -55,7 +55,7 @@ public class ZMQServer implements Runnable{
 	 * @param threaded should this be started in a new thread? if true, will return immediately, if false will never return.
 	 * 
 	 */
-	public void listen(int port, ZMQMessageHandler handler, boolean threaded) {
+	public void listen(int port, ZMQServerMessageHandler handler, boolean threaded) {
 		this.port = port;
 		this.handler = handler;
 		if (threaded) {
@@ -77,7 +77,7 @@ public class ZMQServer implements Runnable{
 		backend.bind("inproc://serverbackend");
 		
 		//set up the outgoing
-		ZMQOutgoing outgoing = new ZMQOutgoing(context, "inproc://serverbackend");
+		ZMQServerOutgoing outgoing = new ZMQServerOutgoing(context, "inproc://serverbackend");
 		outgoing.start();
 		
 		
@@ -92,7 +92,7 @@ public class ZMQServer implements Runnable{
 		while(true) {
 			
 			poller.poll();
-			System.out.println("Server waking up");
+			System.out.println("Server waking up frontindex: " + frontIndex+ " backindex: " + backIndex);
 			if (poller.pollin(frontIndex)) {
 				//incoming messages.
 				do {
@@ -106,12 +106,11 @@ public class ZMQServer implements Runnable{
 			if (poller.pollin(backIndex)) {
 				//theres a message needs to be written.
 				do {
-					System.out.println("SERVER SENDIGN");
-					byte[] id = frontend.recv(0);
-					byte[] message = frontend.recv(0);
+					byte[] id = backend.recv(0);
+					byte[] message = backend.recv(0);
 					try {
-						System.out.println("SERVER GOT HERE: " + new String(id, "utf8"));
-						System.out.println("SERVER GOT HERE: " + new String(message, "utf8"));
+						System.out.println("SERVER SENDING: " + new String(id, "utf8"));
+						System.out.println("SERVER SENDING: " + new String(message, "utf8"));
 					} catch (UnsupportedEncodingException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -119,7 +118,7 @@ public class ZMQServer implements Runnable{
 	                more = backend.hasReceiveMore();
 	                // Broker it
 	                frontend.send(id, ZMQ.SNDMORE);
-	                frontend.send(message,  more ? ZMQ.SNDMORE : 0);
+	                frontend.send(message,  0);// more ? ZMQ.SNDMORE : 0);
 				} while(more);
 			}
 		}

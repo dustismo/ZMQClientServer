@@ -12,8 +12,8 @@ import org.apache.commons.logging.LogFactory;
 import org.zeromq.ZMQ;
 
 import com.trendrr.oss.concurrent.LazyInitObject;
-import com.trendrr.zmq.ZMQOutgoing;
 import com.trendrr.zmq.server.ZMQChannel;
+import com.trendrr.zmq.server.ZMQServerOutgoing;
 
 
 /**
@@ -36,8 +36,6 @@ public class ZMQClientPoller implements Runnable {
 			t.start();
 			return poller;
 		}
-		
-		
 	};
 	
 	public static ZMQClientPoller instance() {
@@ -94,15 +92,15 @@ public class ZMQClientPoller implements Runnable {
 		boolean more = false;
 		while(true) {
 //		for (int i= 0; i < 25; i++) {
-			System.out.println("POLLING");
+//			System.out.println("POLLING");
 			poller.poll();
-			System.out.println("POLLER WAKING UP!");
+//			System.out.println("POLLER WAKING UP!");
 			//process the wakeup alerts
 			if (poller.pollin(alert)) {
 				do {
 					//ingest and discard the message.
 					byte[] id = backend.recv(0);
-					System.out.println("Wakeup call");
+//					System.out.println("Wakeup call");
 					more = backend.hasReceiveMore();
 				} while(more);
 			}
@@ -144,7 +142,7 @@ public class ZMQClientPoller implements Runnable {
 				if (poller.pollin(index)) {
 					//there is message!
 					//incoming messages.
-					System.out.println("INCOMING: " + index);
+//					System.out.println("INCOMING: " + index);
 					do {
 //						byte[] id = c.socket.recv(0);
 //						try {
@@ -167,15 +165,16 @@ public class ZMQClientPoller implements Runnable {
 				//check for outgoing..
 				while (!c.outqueue.isEmpty()) {
 					byte[] message = c.outqueue.poll();
-					try {
-						System.out.println("CLIENT SENDING ID: " + new String(c.id, "utf8"));
-						System.out.println("CLIENT SENDING: " + new String(message, "utf8"));
-					} catch (UnsupportedEncodingException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					c.socket.send(message, c.outqueue.isEmpty() ? 0 : ZMQ.SNDMORE);		
+//					try {
+////						System.out.println("CLIENT SENDING ID: " + new String(c.id, "utf8"));
+//						System.out.println("CLIENT SENDING: " + new String(message, "utf8"));
+//					} catch (UnsupportedEncodingException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+					c.socket.send(message, 0);//c.outqueue.isEmpty() ? 0 : ZMQ.SNDMORE);		
 				}
+//				System.out.println("DONE SENDIng");
 			}
 		}
 

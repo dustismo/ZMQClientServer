@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.zeromq.ZMQ;
 
 import com.trendrr.oss.HashFunctions;
-import com.trendrr.zmq.ZMQOutgoing;
+import com.trendrr.zmq.server.ZMQServerOutgoing;
 
 
 /**
