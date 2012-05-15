@@ -86,13 +86,11 @@ public class ZMQClientPoller implements Runnable {
 		boolean more = false;
 		while(true) {
 			poller.poll();
-//			System.out.println("POLLER WAKING UP!");
 			//process the wakeup alerts
 			if (poller.pollin(alert)) {
 				do {
 					//ingest and discard the message.
 					byte[] id = backend.recv(0);
-//					System.out.println("Wakeup call");
 					more = backend.hasReceiveMore();
 				} while(more);
 			}
@@ -127,21 +125,11 @@ public class ZMQClientPoller implements Runnable {
 
 			
 			for (Integer index : this.clients.keySet()) {
-//				System.out.println("Lookgin at: " + index);
 				ZMQClient c = this.clients.get(index);
 				//now handle any real incoming messages
 				if (poller.pollin(index)) {
 					//there is message!
-					//incoming messages.
-//					System.out.println("INCOMING: " + index);
 					do {
-//						byte[] id = c.socket.recv(0);
-//						try {
-//							System.out.println("ID: " + new String(id, "utf8"));
-//						} catch (UnsupportedEncodingException e) {
-//							// TODO Auto-generated catch block
-//							e.printStackTrace();
-//						}
 						byte[] message = c.socket.recv(0);
 						more = c.socket.hasReceiveMore();
 						c.handler.incoming(c, message);
@@ -152,20 +140,12 @@ public class ZMQClientPoller implements Runnable {
 				if (poller.pollerr(index)) {
 					//TODO
 				}
-//				System.out.println("OUGOINGT CHECK : " + index);
+				
 				//check for outgoing..
 				while (!c.outqueue.isEmpty()) {
 					byte[] message = c.outqueue.poll();
-//					try {
-////						System.out.println("CLIENT SENDING ID: " + new String(c.id, "utf8"));
-//						System.out.println("CLIENT SENDING: " + new String(message, "utf8"));
-//					} catch (UnsupportedEncodingException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
 					c.socket.send(message, 0);//c.outqueue.isEmpty() ? 0 : ZMQ.SNDMORE);		
 				}
-//				System.out.println("DONE SENDIng");
 			}
 		}
 

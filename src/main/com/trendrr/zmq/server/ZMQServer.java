@@ -26,34 +26,6 @@ public class ZMQServer implements Runnable{
 	private ZMQ.Context context;
 	private long pollingTimeout = 1000*1000;
 	
-	public static void main(String ...strings) {
-		
-		ZMQServer server = new ZMQServer();
-		ZMQServerMessageHandler handler = new ZMQServerMessageHandler() {
-			
-			@Override
-			public void incoming(ZMQChannel channel, byte[] message) {
-				try {
-					String received = new String(message, "utf8");
-					System.out.println("ID: " + new String(channel.id, "utf8"));
-					System.out.println("RECIEVED: " + received);
-					//send back the message..
-					channel.send(("RECEIVED: " + received).getBytes("utf8"));					
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			@Override
-			public void error(Exception x) {
-				x.printStackTrace();
-			}
-		};
-		
-		server.listen(8988, handler, false);
-		
-	}
-	
 	/**
 	 * starts the listener.
 	 * @param threaded should this be started in a new thread? if true, will return immediately, if false will never return.
@@ -96,7 +68,6 @@ public class ZMQServer implements Runnable{
 		while(true) {
 			poller.poll(this.pollingTimeout);
 			if (this.stopped.get()) {
-//				System.out.println("CLosing TimE...");
 				poller.unregister(frontend);
 				poller.unregister(backend);
 				frontend.setLinger(0l);
@@ -104,11 +75,9 @@ public class ZMQServer implements Runnable{
 				backend.setLinger(0l);
 				backend.close();
 				context.term();
-//				System.out.println("closed");
 				return;
 			}
 			
-//			System.out.println("Server waking up frontindex: " + frontIndex+ " backindex: " + backIndex);
 			if (poller.pollin(frontIndex)) {
 				//incoming messages.
 				do {
@@ -124,13 +93,7 @@ public class ZMQServer implements Runnable{
 				do {
 					byte[] id = backend.recv(0);
 					byte[] message = backend.recv(0);
-//					try {
-//						System.out.println("SERVER SENDING: " + new String(id, "utf8"));
-//						System.out.println("SERVER SENDING: " + new String(message, "utf8"));
-//					} catch (UnsupportedEncodingException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
+
 	                more = backend.hasReceiveMore();
 	                // Broker it
 	                frontend.send(id, ZMQ.SNDMORE);
