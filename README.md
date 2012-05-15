@@ -50,7 +50,7 @@ Server
 				x.printStackTrace();
 			}
 		};
-		
+		ZMQServer server = new ZMQServer();
 		server.listen(8988, handler, true);
 
 ```
