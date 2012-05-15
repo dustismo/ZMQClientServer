@@ -69,12 +69,13 @@ public class ZMQClient {
 		ZMQClientPoller.instance().wakeup();
 	}
 	public void close() {
+		System.out.println("Client CLOSE!");
 		ZMQClientPoller.instance().disconnect.add(this);
 		ZMQClientPoller.instance().wakeup();
 	}
 
 	void _connected() {
-		System.out.println("CONNECTED!");
+//		System.out.println("CONNECTED!");
 		
 	}
 	

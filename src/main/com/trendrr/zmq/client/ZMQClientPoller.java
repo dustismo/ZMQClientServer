@@ -68,16 +68,10 @@ public class ZMQClientPoller implements Runnable {
 	 * do the initialization outside of the main thread execution.
 	 */
 	void init() {
-		System.out.println("binding backend");
 		backend = context.socket(ZMQ.DEALER);
 		backend.bind("inproc://clientbackend");
-		
 		outgoing = new ZMQClientWakeup(context, "inproc://clientbackend");
-		
 		outgoing.start();
-		System.out.println("Done binding backend");
-		
-		
 	}
 	
 	/* (non-Javadoc)
@@ -91,8 +85,6 @@ public class ZMQClientPoller implements Runnable {
 		int alert = poller.register(backend, ZMQ.Poller.POLLIN);
 		boolean more = false;
 		while(true) {
-//		for (int i= 0; i < 25; i++) {
-//			System.out.println("POLLING");
 			poller.poll();
 //			System.out.println("POLLER WAKING UP!");
 			//process the wakeup alerts
@@ -104,7 +96,6 @@ public class ZMQClientPoller implements Runnable {
 					more = backend.hasReceiveMore();
 				} while(more);
 			}
-//			System.out.println("HERE1");
 			/*
 			 * handle disconnections
 			 */
@@ -113,10 +104,11 @@ public class ZMQClientPoller implements Runnable {
 				//connect to remote.
 				this.clients.remove(disconnection.pollerIndex);
 				poller.unregister(disconnection.socket);
+				disconnection.socket.setLinger(0l);
 				disconnection.socket.close();
 				disconnection._closed();
+				disconnection = disconnect.poll();
 			}
-//			System.out.println("HERE2");
 			/*
 			 * handle new connections
 			 */
@@ -132,7 +124,6 @@ public class ZMQClientPoller implements Runnable {
 				newConnection._connected();
 				newConnection = connect.poll();
 			}
-//			System.out.println("HERE3");
 
 			
 			for (Integer index : this.clients.keySet()) {

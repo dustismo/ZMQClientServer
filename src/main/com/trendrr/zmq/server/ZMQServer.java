@@ -4,6 +4,7 @@
 package com.trendrr.zmq.server;
 
 import java.io.UnsupportedEncodingException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,6 +22,9 @@ public class ZMQServer implements Runnable{
 	protected static Log log = LogFactory.getLog(ZMQServer.class);
 	private int port = 8653;
 	private ZMQServerMessageHandler handler;
+	private AtomicBoolean stopped = new AtomicBoolean(true);
+	private ZMQ.Context context;
+	private long pollingTimeout = 1000*1000;
 	
 	public static void main(String ...strings) {
 		
@@ -69,7 +73,7 @@ public class ZMQServer implements Runnable{
 	
 	
 	public void run() {
-		ZMQ.Context context = ZMQ.context(1);
+		context = ZMQ.context(1);
 		ZMQ.Socket frontend = context.socket(ZMQ.ROUTER);
 		frontend.bind ("tcp://*:" + port);
 		
@@ -80,7 +84,7 @@ public class ZMQServer implements Runnable{
 		ZMQServerOutgoing outgoing = new ZMQServerOutgoing(context, "inproc://serverbackend");
 		outgoing.start();
 		
-		
+		this.stopped.set(false);
 		
 		
 		ZMQ.Poller poller = context.poller(2);
@@ -90,9 +94,21 @@ public class ZMQServer implements Runnable{
 		boolean more = false;
 		System.out.println("Server Listening on : " + port);
 		while(true) {
+			poller.poll(this.pollingTimeout);
+			if (this.stopped.get()) {
+//				System.out.println("CLosing TimE...");
+				poller.unregister(frontend);
+				poller.unregister(backend);
+				frontend.setLinger(0l);
+				frontend.close();
+				backend.setLinger(0l);
+				backend.close();
+				context.term();
+//				System.out.println("closed");
+				return;
+			}
 			
-			poller.poll();
-			System.out.println("Server waking up frontindex: " + frontIndex+ " backindex: " + backIndex);
+//			System.out.println("Server waking up frontindex: " + frontIndex+ " backindex: " + backIndex);
 			if (poller.pollin(frontIndex)) {
 				//incoming messages.
 				do {
@@ -108,13 +124,13 @@ public class ZMQServer implements Runnable{
 				do {
 					byte[] id = backend.recv(0);
 					byte[] message = backend.recv(0);
-					try {
-						System.out.println("SERVER SENDING: " + new String(id, "utf8"));
-						System.out.println("SERVER SENDING: " + new String(message, "utf8"));
-					} catch (UnsupportedEncodingException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+//					try {
+//						System.out.println("SERVER SENDING: " + new String(id, "utf8"));
+//						System.out.println("SERVER SENDING: " + new String(message, "utf8"));
+//					} catch (UnsupportedEncodingException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
 	                more = backend.hasReceiveMore();
 	                // Broker it
 	                frontend.send(id, ZMQ.SNDMORE);
@@ -122,6 +138,18 @@ public class ZMQServer implements Runnable{
 				} while(more);
 			}
 		}
+	}
+	
+	/**
+	 * closes and cleans up this server.
+	 * 
+	 * Currently this is an asynch call, it returns immediately, but it may take a 
+	 * second or three to actually clean up.  
+	 * 
+	 * TODO: block until the operation completes.
+	 */
+	public void close() {
+		this.stopped.set(true);
 	}
 	
 	/**

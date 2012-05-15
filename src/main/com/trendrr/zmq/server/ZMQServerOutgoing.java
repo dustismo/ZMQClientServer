@@ -50,28 +50,20 @@ public class ZMQServerOutgoing implements Runnable{
 		while(true) {
 			try {
 				ZMQOutMessage message = messages.take();
-				System.out.println("GOT FROM QUEUE: " + new String(message.message, "utf8"));
 				socket.send(message.id, ZMQ.SNDMORE);
 				socket.send(message.message, 0);//messages.isEmpty() ? 0 : ZMQ.SNDMORE);
 			} catch (InterruptedException e) {
 				log.error("Caught", e);
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
 		}
 	}
 	
 	public void send(byte[] id, byte[] message) {
 		try {
-			System.out.println("ADDING TO QUEUE: " + new String(message, "utf8"));
 			this.messages.put(new ZMQOutMessage(id, message));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			log.error("caught", e);
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 }
