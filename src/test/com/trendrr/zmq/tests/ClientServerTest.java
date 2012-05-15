@@ -31,62 +31,34 @@ public class ClientServerTest {
 
 	protected static Log log = LogFactory.getLog(ClientServerTest.class);
 	ZMQServer server = new ZMQServer();
-	Set<String> sent = Collections.synchronizedSet(new HashSet<String>());
+	
 	
 	@Test
 	public void testMessagePassing() {
 		//simple, counts echo receives
 		
 		this.startEchoServer();
-		
-		ZMQClient client = this.startEchoClient();
+		EchoClient client = new EchoClient("tcp://localhost:8988");
 		for (int i=0; i < 10000; i++) {
 			try {
 				String message = "message: " + StringHelper.randomString(10) + " " + i;
-				sent.add(message);
+				System.out.println(message);
 				client.send(message.getBytes("utf8"));
 			} catch (UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		Sleep.seconds(2);
-		//cleanup 
-		Assert.assertTrue(sent.isEmpty());
+		Sleep.seconds(4);
+		//TODO: cleanup 
+		
+		
+		Assert.assertTrue(client.getSent().isEmpty());
 	}
 	
 	
 	
 	
-	public ZMQClient startEchoClient() {
-		
-		ZMQClientMessageHandler handler = new ZMQClientMessageHandler() {
-			
-			@Override
-			public void incoming(ZMQClient client, byte[] message) {
-				
-				
-				try {
-					String msg = new String(message, "utf8");
-					sent.remove(msg);
-//					System.out.println("Client INCOMING " + client + ": " + new String(message, "utf8"));
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-			@Override
-			public void error(Exception x) {
-				x.printStackTrace();
-			}
-		};
-		
-		ZMQClient client = new ZMQClient("tcp://localhost:8988", handler);
-		client.connect();
-		return client;
-		
-	}
 	
 	public void startEchoServer() {
 		
@@ -95,17 +67,16 @@ public class ClientServerTest {
 			
 			@Override
 			public void incoming(ZMQChannel channel, byte[] message) {
-//				try {
-//					String received = new String(message, "utf8");
-//					String id = new String(channel.getId(), "utf8");
-//					System.out.println("SERVER RECIEVED: " + received + " from ID: " + id);
-//					//send back the message..
-//					channel.send(("RECEIVED: " + received).getBytes("utf8"));			
-//					
-//					
-//				} catch (UnsupportedEncodingException e) {
-//					e.printStackTrace();
-//				}
+				try {
+					String received = new String(message, "utf8");
+					String id = new String(channel.getId(), "utf8");
+					System.out.println("SERVER RECIEVED: " + received + " from ID: " + id);
+					//send back the message..	
+					
+					
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
 				channel.send(message);
 			}
 			

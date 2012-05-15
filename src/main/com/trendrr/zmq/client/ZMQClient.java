@@ -10,6 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.zeromq.ZMQ;
 
 import com.trendrr.oss.HashFunctions;
+import com.trendrr.oss.concurrent.LazyInit;
 import com.trendrr.zmq.server.ZMQServerOutgoing;
 
 
@@ -30,6 +31,7 @@ public class ZMQClient {
 	ZMQClientMessageHandler handler;
 	byte[] id;
 	ArrayBlockingQueue<byte[]> outqueue = new ArrayBlockingQueue<byte[]>(25);
+	LazyInit connectLock = new LazyInit();
 	
 	public ZMQClient(String connection, ZMQClientMessageHandler handler) {
 		this.connection = connection;
@@ -42,6 +44,14 @@ public class ZMQClient {
 	}
 	
 	public void send(byte[] message) {
+		if (this.connectLock.start()) {
+			try {
+				this.connect();
+			} finally {
+				this.connectLock.end();
+			}
+		}
+		
 		try {
 			this.outqueue.put(message);
 			ZMQClientPoller.instance().wakeup();
@@ -51,7 +61,10 @@ public class ZMQClient {
 		}
 	}
 	
-	public void connect() {
+	/**
+	 * called lazily
+	 */
+	protected void connect() {
 		ZMQClientPoller.instance().connect.add(this);
 		ZMQClientPoller.instance().wakeup();
 	}
