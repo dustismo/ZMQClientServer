@@ -2,4 +2,7 @@ bin/*
 .settings*
 .project
 .classpath
+build/*
+~*
+*~
 
