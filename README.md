@@ -28,6 +28,7 @@ Usage:
  
  
  ZMQClient client = new ZMQClient("tcp://localhost:8988", handler);
+ //client is threadsafe
  client.send("this is a message".getBytes());
 
 ```
