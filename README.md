@@ -28,6 +28,7 @@ Usage:
  
  
  ZMQClient client = new ZMQClient("tcp://localhost:8988", handler);
+ //client is threadsafe
  client.send("this is a message".getBytes());
 
 ```
@@ -42,6 +43,9 @@ Server
 			
 			@Override
 			public void incoming(ZMQChannel channel, byte[] message) {
+				//just send the message back to the originating user.
+				//you could also start a new thread here to handle more intense processing.
+				//the channel is threadsafe
 				channel.send(message);
 			}
 			
@@ -50,7 +54,7 @@ Server
 				x.printStackTrace();
 			}
 		};
-		
+		ZMQServer server = new ZMQServer();
 		server.listen(8988, handler, true);
 
 ```
