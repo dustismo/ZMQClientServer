@@ -113,14 +113,20 @@ public class ZMQClientPoller implements Runnable {
 			ZMQClient newConnection = connect.poll();
 			while(newConnection != null) {
 				//connect to remote.
-				newConnection.socket = context.socket(ZMQ.DEALER);
-				newConnection.socket.setIdentity(newConnection.id);
-				System.out.println("CONNECTING: " + newConnection.getConnection());
-				newConnection.socket.connect(newConnection.getConnection());
-				newConnection.pollerIndex = poller.register(newConnection.socket, ZMQ.Poller.POLLIN);
-				this.clients.put(newConnection.pollerIndex, newConnection);
-				newConnection._connected();
-				newConnection = connect.poll();
+				try {
+					newConnection.socket = context.socket(ZMQ.DEALER);
+					newConnection.socket.setIdentity(newConnection.id);
+					System.out.println("CONNECTING: " + newConnection.getConnection());
+					newConnection.socket.connect(newConnection.getConnection());
+					newConnection.pollerIndex = poller.register(newConnection.socket, ZMQ.Poller.POLLIN);
+					this.clients.put(newConnection.pollerIndex, newConnection);
+					newConnection._connected();
+					newConnection = connect.poll();
+				} catch (Exception x) {
+					log.error("Unable to connect!", x);
+					log.error(newConnection.getConnection());
+					newConnection.close();
+				}
 			}
 
 			
